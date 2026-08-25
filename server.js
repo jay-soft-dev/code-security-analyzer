@@ -6,6 +6,8 @@ import { GoogleGenAI } from '@google/genai';
 dotenv.config();
 
 const app = express();
+
+// Enable CORS and JSON body parsing
 app.use(cors());
 app.use(express.json());
 
@@ -18,7 +20,7 @@ app.post('/api/analyze', async (req, res) => {
     const { code, language } = req.body;
 
     if (!code) {
-      return res.status(400).json({ error: 'Code is required' });
+      return res.status(400).json({ success: false, error: 'Code is required' });
     }
 
     // System Prompt for Security Auditor
@@ -31,7 +33,7 @@ app.post('/api/analyze', async (req, res) => {
       "securityScore": "Score out of 10 (e.g., 6.5/10)",
       "vulnerabilities": [
         {
-          "type": "Vulnerability Name (e.g., Buffer Overflow, SQL Injection, JWT Flaw)",
+          "type": "Vulnerability Name",
           "severity": "High/Medium/Low",
           "line": "Line number or snippet",
           "description": "Brief explanation of the risk"
@@ -49,7 +51,7 @@ app.post('/api/analyze', async (req, res) => {
 
     // Generate response using Gemini 2.5 Flash
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       contents: prompt,
       config: {
         responseMimeType: 'application/json',
@@ -57,11 +59,14 @@ app.post('/api/analyze', async (req, res) => {
     });
 
     const result = JSON.parse(response.text);
-    res.json({ success: true, data: result });
+    return res.json({ success: true, data: result });
 
   } catch (error) {
     console.error('Error analyzing code:', error);
-    res.status(500).json({ success: false, error: 'Failed to analyze code' });
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Failed to analyze code. Make sure GEMINI_API_KEY is valid in .env file.' 
+    });
   }
 });
 
