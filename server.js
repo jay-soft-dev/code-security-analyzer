@@ -1,74 +1,40 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import { GoogleGenAI } from '@google/genai';
 
-dotenv.config();
-
-const app = express();
-
-// Enable CORS and JSON body parsing
-app.use(cors());
-app.use(express.json());
-
-// Initialize Gemini AI SDK
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
-// Code Security Audit Endpoint
 app.post('/api/analyze', async (req, res) => {
   try {
     const { code, language } = req.body;
 
     if (!code) {
-      return res.status(400).json({ success: false, error: 'Code is required' });
+      return res.status(400).json({ error: 'Code is required' });
     }
 
-    // System Prompt for Security Auditor
+  
     const prompt = `
-    You are a Senior Cybersecurity Auditor and Code Optimizer. 
-    Analyze the following ${language || 'programming'} code for security vulnerabilities, memory leaks, and performance issues.
+    You are an expert Code Security & Performance Auditor. 
+    Analyze the following code written in ${language || 'Auto-Detect Language'}:
 
-    Provide the response strictly in JSON format with the following structure:
-    {
-      "securityScore": "Score out of 10 (e.g., 6.5/10)",
-      "vulnerabilities": [
-        {
-          "type": "Vulnerability Name",
-          "severity": "High/Medium/Low",
-          "line": "Line number or snippet",
-          "description": "Brief explanation of the risk"
-        }
-      ],
-      "fixes": "Detailed explanation of how to fix these issues",
-      "secureCode": "The fully refactored, secure, and optimized code"
-    }
-
-    Code to analyze:
+    Code:
     \`\`\`
     ${code}
     \`\`\`
+
+    Provide the analysis strictly in JSON format with the following keys:
+    {
+      "securityScore": <Number between 0 to 100>,
+      "summary": "<Brief summary of code quality and main security feedback>",
+      "vulnerabilities": ["<Vulnerability 1>", "<Vulnerability 2>"],
+      "suggestedFix": "<Refactored, secure, and optimized code>"
+    }
     `;
 
-    // Generate response using Gemini 2.5 Flash
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-      },
-    });
-
-    const result = JSON.parse(response.text);
-    return res.json({ success: true, data: result });
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    
+    // Clean response to handle JSON formatting
+    const cleanedJson = responseText.replace(/```json|```/g, '').trim();
+    res.json(JSON.parse(cleanedJson));
 
   } catch (error) {
     console.error('Error analyzing code:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Failed to analyze code. Make sure GEMINI_API_KEY is valid in .env file.' 
-    });
+    res.status(500).json({ error: 'Failed to analyze code' });
   }
 });
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -19,5 +19,9 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "lucide-react": "^1.34.0"
+  },
+  "allowScripts": {
+    "@google/genai@2.18.0": true,
+    "protobufjs@7.6.5": true
   }
 }
